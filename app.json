@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sora",
-    "slug": "sora",
+    "name": "Fantom",
+    "slug": "Fantom",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "scheme": "sora",
+    "scheme": "Fantom",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true

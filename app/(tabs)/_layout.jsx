@@ -38,9 +38,9 @@ const TabLayout = () => {
           tabBarInactiveTintColor: "#CDCDE0",
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: "#161622",
+            backgroundColor: "#FFF",
             borderTopWidth: 1,
-            borderTopColor: "#232533",
+            borderTopColor: "#fff",
             height: 84,
           },
         }}
@@ -53,7 +53,7 @@ const TabLayout = () => {
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
                 icon={icons.home}
-                color={color}
+                color={'black'}
                 name="Home"
                 focused={focused}
               />
@@ -61,15 +61,15 @@ const TabLayout = () => {
           }}
         />
         <Tabs.Screen
-          name="bookmark"
+          name="Weather"
           options={{
-            title: "Bookmark",
+            title: "Weather",
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
-                icon={icons.bookmark}
-                color={color}
-                name="Bookmark"
+                icon={icons.weather}
+                color={'black'}
+                name="Weather"
                 focused={focused}
               />
             ),
@@ -79,13 +79,28 @@ const TabLayout = () => {
         <Tabs.Screen
           name="create"
           options={{
-            title: "Create",
+            title: "Search",
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
-                icon={icons.plus}
-                color={color}
-                name="Create"
+                icon={icons.search}
+                color={'black'}
+                name="Navigate"
+                focused={focused}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="emergency"
+          options={{
+            title: "Emergency",
+            headerShown: false,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon
+                icon={icons.emergency}
+                color={'red'}
+                name="Emergency"
                 focused={focused}
               />
             ),
@@ -99,7 +114,7 @@ const TabLayout = () => {
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
                 icon={icons.profile}
-                color={color}
+                color={'black'}
                 name="Profile"
                 focused={focused}
               />
@@ -109,7 +124,7 @@ const TabLayout = () => {
       </Tabs>
 
       <Loader isLoading={loading} />
-      <StatusBar backgroundColor="#161622" style="light" />
+      <StatusBar backgroundColor="#fff" style="Dark" />
     </>
   );
 };

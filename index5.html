@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantom AI + AR Travel Guide</title>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Mapbox Routing -->
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+    <!-- OpenWeatherMap API for Weather Data -->
+    <script src="https://api.openweathermap.org/data/2.5/weather?appid=697c0087cf9a5d813d2dffaeb6dda1df"></script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            transition: background-color 0.3s;
+        }
+
+        /* Controls section */
+        #controls {
+            width: 300px;
+            padding: 20px;
+            background-color: rgba(30, 30, 30, 0.8);
+            border-radius: 10px;
+            margin: 10px;
+            color: white;
+            z-index: 10;
+            position: relative;
+            box-sizing: border-box;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        /* Map container */
+        #mapContainer {
+            flex-grow: 50;
+            height: 47vh;
+            width: 160vh;
+            margin: 10px;
+            border: 3px solid #ff9800;
+            border-radius: 10px;
+        }
+
+        #map {
+            height: 200%;
+            border-radius: 10px;
+        }
+
+        /* Weather Card Styling */
+        .weather-card {
+            background: linear-gradient(145deg, #6e7f7e, #3a4f4e);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            margin-top: 10px;
+            text-align: center;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .weather-card.show {
+            opacity: 1;
+        }
+
+        .weather-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .weather-info {
+            font-size: 18px;
+        }
+
+        /* Button and Input Styling */
+        input, button, select {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #ff9800;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #e68900;
+        }
+
+        /* Night Mode Styling */
+        .night-mode {
+            background-color: #121212 !important;
+            color: white;
+        }
+
+        .day-mode {
+            background-color: #f0f0f0 !important;
+            color: #333;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            #controls {
+                width: 100%;
+                padding: 15px;
+            }
+
+            #mapContainer {
+                width: 100%;
+                height: 60vh;
+            }
+
+            input, button, select {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="searchLocation" placeholder="Enter location to go">
+        <button onclick="searchLocation()">🔍 Search</button>
+        <button onclick="requestLocationAccess()">📍 Enable My Location</button>
+        <button onclick="getDirections()">🚗 Get Directions</button>
+        <select id="interest" onchange="fetchPlacesAlongRoute()">
+            <option value="default">Select Interest</option>
+            <option value="restaurant">Restaurants</option>
+            <option value="hotel">Hotels</option>
+            <option value="hospital">Hospitals</option>
+            <option value="gas_station">Gas Stations</option>
+            <option value="shopping">Shopping Centers</option>
+            <option value="landmark">Landmarks</option>
+        </select>
+        <button onclick="getWeather()">🌤️ Show Weather</button>
+        <input type="text" id="weatherLocation" placeholder="Enter location for weather">
+        <button onclick="searchWeather()">🌦️ Get Weather for Location</button>
+        <button onclick="toggleNightMode()">🌙 Toggle Night Mode</button>
+    </div>
+
+    <div id="mapContainer">
+        <div id="map"></div>
+    </div>
+
+    <!-- Weather Card -->
+    <div id="weatherCard" class="weather-card"></div>
+
+    <script>
+        let map = L.map('map').setView([20.5937, 78.9629], 5);  // Set initial view to India coordinates
+
+        // Using OpenStreetMap tile layer for the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        let userMarker, destinationMarker, route, nearbyMarkers = [];
+
+        // Request user's location
+        function requestLocationAccess() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(getUserLocation, handleLocationError, { enableHighAccuracy: true });
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+
+        function getUserLocation(position) {
+            let lat = position.coords.latitude;
+            let lon = position.coords.longitude;
+            if (!userMarker) {
+                userMarker = L.marker([lat, lon]).addTo(map).bindPopup("You are here!").openPopup();
+            } else {
+                userMarker.setLatLng([lat, lon]);
+            }
+            map.setView([lat, lon], 14);
+        }
+
+        function handleLocationError() {
+            alert("Location access denied or failed. Please allow location access and try again.");
+        }
+
+        function searchLocation() {
+            let location = document.getElementById("searchLocation").value;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let lat = data[0].lat;
+                        let lon = data[0].lon;
+                        map.setView([lat, lon], 14);
+                        if (destinationMarker) map.removeLayer(destinationMarker);
+                        destinationMarker = L.marker([lat, lon]).addTo(map).bindPopup(location).openPopup();
+                    } else {
+                        alert("Location not found! Try a different search.");
+                    }
+                })
+                .catch(() => alert("Error searching for the location."));
+        }
+
+        function getDirections() {
+            if (!userMarker || !destinationMarker) return alert("Please set both your location and destination first.");
+            let userLatLng = userMarker.getLatLng();
+            let destLatLng = destinationMarker.getLatLng();
+            if (route) map.removeControl(route);
+
+            route = L.Routing.control({
+                waypoints: [L.latLng(userLatLng.lat, userLatLng.lng), L.latLng(destLatLng.lat, destLatLng.lng)],
+                routeWhileDragging: true,
+                createMarker: () => null,
+                lineOptions: { styles: [{ color: '#2c3e50', opacity: 1, weight: 8 }] }
+            }).addTo(map);
+        }
+
+        // Fetch Places Along the Route
+        function fetchPlacesAlongRoute(routeCoords) {
+            let category = document.getElementById("interest").value;
+            if (category === "default") return;
+
+            let query = `
+                [out:json];
+                node["amenity"="${category}"](around:2000,${routeCoords[0].lat},${routeCoords[0].lng});
+                out body;
+            `;
+            fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    nearbyMarkers.forEach(m => map.removeLayer(m));
+                    nearbyMarkers = [];
+
+                    data.elements.forEach(place => {
+                        let placeMarker = L.marker([place.lat, place.lon])
+                            .addTo(map)
+                            .bindPopup(place.tags.name || "Unknown Place");
+                        nearbyMarkers.push(placeMarker);
+                    });
+                });
+        }
+
+        // Show weather for the user's current location or destination in a beautiful card
+        function getWeather() {
+            let lat = userMarker.getLatLng().lat;
+            let lon = userMarker.getLatLng().lng;
+            fetchWeather(lat, lon);
+        }
+
+        // Search weather for any given location
+        function searchWeather() {
+            let location = document.getElementById("weatherLocation").value;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let lat = data[0].lat;
+                        let lon = data[0].lon;
+                        fetchWeather(lat, lon);
+                    } else {
+                        alert("Location not found!");
+                    }
+                })
+                .catch(() => alert("Error searching for the location."));
+        }
+
+        function fetchWeather(lat, lon) {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=697c0087cf9a5d813d2dffaeb6dda1df&units=metric`)
+                .then(response => response.json())
+                .then(data => {
+                    let weatherCard = document.getElementById("weatherCard");
+                    weatherCard.classList.add("show");
+
+                    let icon = getWeatherIcon(data.weather[0].main);
+                    let weatherContent = `
+                        <div class="weather-icon">${icon}</div>
+                        <div class="weather-info">
+                            <h2>${data.name}, ${data.sys.country}</h2>
+                            <p>${data.weather[0].description}</p>
+                            <h3>${data.main.temp}°C</h3>
+                            <p>Humidity: ${data.main.humidity}%</p>
+                            <p>Wind: ${data.wind.speed} km/h</p>
+                        </div>
+                    `;
+                    weatherCard.innerHTML = weatherContent;
+                });
+        }
+
+        function getWeatherIcon(weatherCondition) {
+            switch (weatherCondition) {
+                case 'Clear':
+                    return '🌞';  // Sun icon
+                case 'Clouds':
+                    return '☁️';  // Cloud icon
+                case 'Rain':
+                    return '🌧️';  // Rain icon
+                case 'Thunderstorm':
+                    return '🌩️';  // Thunderstorm icon
+                case 'Snow':
+                    return '❄️';  // Snow icon
+                case 'Drizzle':
+                    return '🌦️';  // Drizzle icon
+                case 'Mist':
+                    return '🌫️';  // Mist icon
+                default:
+                    return '❓';  // Unknown weather icon
+            }
+        }
+
+        // Toggle night mode
+        function toggleNightMode() {
+            document.body.classList.toggle("night-mode");
+            document.body.classList.toggle("day-mode");
+        }
+    </script>
+</body>
+</html>

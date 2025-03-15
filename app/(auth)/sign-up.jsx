@@ -38,7 +38,7 @@ const SignUp = () => {
   };
 
   return (
-    <SafeAreaView className="bg-primary h-full">
+    <SafeAreaView className="bg-white h-full">
       <ScrollView>
         <View
           className="w-full flex justify-center h-full px-4 my-6"
@@ -52,8 +52,8 @@ const SignUp = () => {
             className="w-[115px] h-[34px]"
           />
 
-          <Text className="text-2xl font-semibold text-white mt-10 font-psemibold">
-            Sign Up to Aora
+          <Text className="text-2xl font-semibold text-black mt-10 font-psemibold">
+            Sign Up to Fantom
           </Text>
 
           <FormField
@@ -86,7 +86,7 @@ const SignUp = () => {
           />
 
           <View className="flex justify-center pt-5 flex-row gap-2">
-            <Text className="text-lg text-gray-100 font-pregular">
+            <Text className="text-lg text-black-100 font-pregular">
               Have an account already?
             </Text>
             <Link
